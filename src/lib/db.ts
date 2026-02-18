@@ -8,8 +8,7 @@ export async function query<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rows = await (sql as any)(text, params);
+  const rows = await sql.query(text, params);
   return rows as T[];
 }
 
