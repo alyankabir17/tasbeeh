@@ -10,6 +10,7 @@
     "db:init": "node scripts/init-db.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",

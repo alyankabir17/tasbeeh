@@ -4,7 +4,7 @@
  *
  * Reads DATABASE_URL from .env
  */
-import pg from "pg";
+import { neon } from "@neondatabase/serverless";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -31,33 +31,34 @@ try {
   // .env file not found — rely on existing env vars
 }
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
-
-const sql = `
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
-
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS counters (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-  current_count INTEGER DEFAULT 0,
-  target INTEGER DEFAULT 100,
-  lifetime_count INTEGER DEFAULT 0,
-  last_updated TIMESTAMP DEFAULT NOW()
-);
-`;
+const sql = neon(process.env.DATABASE_URL);
 
 async function main() {
   console.log("Connecting to database…");
-  await pool.query(sql);
+
+  await sql`CREATE EXTENSION IF NOT EXISTS "pgcrypto"`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS counters (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      current_count INTEGER DEFAULT 0,
+      target INTEGER DEFAULT 100,
+      lifetime_count INTEGER DEFAULT 0,
+      last_updated TIMESTAMP DEFAULT NOW()
+    )
+  `;
+
   console.log("✅ Tables created successfully.");
-  await pool.end();
 }
 
 main().catch((err) => {

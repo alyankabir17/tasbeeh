@@ -1,30 +1,15 @@
 import "server-only";
-import { Pool } from "pg";
+import { neon } from "@neondatabase/serverless";
 
-const globalForDb = globalThis as unknown as {
-  pool: Pool | undefined;
-};
-
-export const pool =
-  globalForDb.pool ??
-  new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl:
-      process.env.NODE_ENV === "production"
-        ? { rejectUnauthorized: false }
-        : undefined,
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForDb.pool = pool;
-}
+const sql = neon(process.env.DATABASE_URL!);
 
 /** Run a query and return rows */
 export async function query<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const { rows } = await pool.query(text, params);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = await (sql as any)(text, params);
   return rows as T[];
 }
 
