@@ -53,6 +53,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    authorized({ auth: session, request }) {
+      const isProtected = request.nextUrl.pathname.startsWith("/dashboard");
+      if (isProtected && !session?.user) {
+        return false; // will redirect to signIn page
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
