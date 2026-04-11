@@ -26,25 +26,26 @@ pipeline {
             }
         }
 
-        stage('Run New Container') {
-            steps {
-                withCredentials([
-                    string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL'),
-                    string(credentialsId: 'NEXTAUTH_SECRET', variable: 'NEXTAUTH_SECRET'),
-                    string(credentialsId: 'AUTH_SECRET', variable: 'AUTH_SECRET')
-                ]) {
-                    sh """
-                    docker run -d \
-                    --name tasbeeh \
-                    -p 3000:3000 \
-                    -e DATABASE_URL=$DATABASE_URL \
-                    -e NEXTAUTH_SECRET=$NEXTAUTH_SECRET \
-                    -e AUTH_SECRET=$AUTH_SECRET \
-                    $IMAGE_NAME:$BUILD_NUMBER
-                    """
-                }
-            }
+     stage('Run New Container') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL'),
+            string(credentialsId: 'NEXTAUTH_SECRET', variable: 'NEXTAUTH_SECRET'),
+            string(credentialsId: 'AUTH_SECRET', variable: 'AUTH_SECRET')
+        ]) {
+            // Notice the \$ before the environment variables
+            sh """
+            docker run -d \
+            --name tasbeeh \
+            -p 3000:3000 \
+            -e DATABASE_URL=\$DATABASE_URL \
+            -e NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
+            -e AUTH_SECRET=\$AUTH_SECRET \
+            ${IMAGE_NAME}:${env.BUILD_NUMBER}
+            """
         }
+    }
+}
 
         stage('Cleanup') {
             steps {
