@@ -2,14 +2,18 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "tasbeeh"
+        // Ensure Docker Compose can see these Jenkins variables
+        BUILD_TAG = "${env.BUILD_NUMBER}"
     }
     stages {
         stage('Build') {
             steps {
+                // Building with the build number tag
                 sh "docker build -t $IMAGE_NAME:$BUILD_NUMBER ."
             }
         }
-        stage('Deploy with Rollback Strategy') {
+
+        stage('Deploy with Rollback') {
             steps {
                 withCredentials([
                     string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL'),
@@ -17,24 +21,24 @@ pipeline {
                     string(credentialsId: 'AUTH_SECRET', variable: 'AUTH_SECRET')
                 ]) {
                     sh """
-                    # 1. Keep the current container running but rename it
+                    # 1. Backup the current working container
                     docker rename tasbeeh tasbeeh_old || true
                     
-                    # 2. Start the new container on a temporary port or just start it
-                    docker run -d --name tasbeeh -p 3000:3000 \
-                        -e DATABASE_URL=\$DATABASE_URL \
-                        -e NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
-                        -e AUTH_SECRET=\$AUTH_SECRET \
-                        $IMAGE_NAME:$BUILD_NUMBER
+                    # 2. Use Docker Compose to start the NEW version
+                    # We pass the env variables directly to the command
+                    IMAGE_NAME=$IMAGE_NAME BUILD_NUMBER=$BUILD_NUMBER \
+                    DATABASE_URL=\$DATABASE_URL \
+                    NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
+                    AUTH_SECRET=\$AUTH_SECRET \
+                    docker compose up -d
                     
-                    # 3. Health Check: Give Next.js 10 seconds to boot up
+                    # 3. Health Check
                     sleep 10
-                    if docker ps | grep tasbeeh | grep "(healthy)" || [ \$(docker inspect -f '{{.State.Running}}' tasbeeh) = "true" ]; then
+                    if [ \$(docker inspect -f '{{.State.Running}}' tasbeeh) = "true" ]; then
                         echo "New version is stable. Removing old backup..."
-                        docker stop tasbeeh_old || true
-                        docker rm tasbeeh_old || true
+                        docker rm -f tasbeeh_old || true
                     else
-                        echo "New version failed! Rolling back..."
+                        echo "New version failed! Triggering Rollback..."
                         exit 1
                     fi
                     """
@@ -42,21 +46,26 @@ pipeline {
             }
         }
     }
-   post {
-    failure {
-        sh """
-        echo "Deployment failed. Checking for rollback options..."
-        # Only try to restore if the old backup actually exists
-        if [ \$(docker ps -a -q -f name=tasbeeh_old) ]; then
+    post {
+        failure {
+            sh """
+            echo "Deployment failed. Reverting to tasbeeh_old..."
             docker stop tasbeeh || true
             docker rm tasbeeh || true
-            docker rename tasbeeh_old tasbeeh
-            docker start tasbeeh
-            echo "Rollback successful."
-        else
-            echo "No backup container (tasbeeh_old) found. System is currently down."
-        fi
-        """
+            
+            # If the backup exists, bring it back to life
+            if [ \$(docker ps -a -q -f name=tasbeeh_old) ]; then
+                docker rename tasbeeh_old tasbeeh
+                docker start tasbeeh
+                echo "Rollback successful."
+            else
+                echo "Critical: No backup found."
+            fi
+            """
+        }
+        always {
+            // Keep your Lenovo laptop clean!
+            sh "docker image prune -f"
+        }
     }
-}
 }

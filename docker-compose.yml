@@ -1,8 +1,10 @@
 services:
-  app:
-    build: .
+  tasbeeh-app:
+    image: ${IMAGE_NAME}:${BUILD_NUMBER}
+    container_name: tasbeeh # This must match your rename logic
     ports:
       - "3000:3000"
-    env_file:
-      - .env
-    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - AUTH_SECRET=${AUTH_SECRET}
