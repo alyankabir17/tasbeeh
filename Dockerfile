@@ -1,16 +1,13 @@
-FROM node:20.19
+FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-RUN npm run build && npm prune --production
+RUN npm run build
 
 EXPOSE 3000
-
-CMD ["npm", "start"]
-ENV DATABASE_URL=postgresql://neondb_owner:npg_FsELP6z4tqvi@ep-solitary-cake-aiv6wbqv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&uselibpqcompat=true
+CMD ["node", ".next/standalone/server.js"]

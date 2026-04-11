@@ -1,14 +1,18 @@
 import "server-only";
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL!);
+export function getDb() {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL missing");
+  return neon(url);
+}
 
 /** Run a query and return rows */
 export async function query<T = Record<string, unknown>>(
   text: string,
   params?: unknown[]
 ): Promise<T[]> {
-  const rows = await sql.query(text, params);
+  const rows = await getDb().query(text, params);
   return rows as T[];
 }
 
