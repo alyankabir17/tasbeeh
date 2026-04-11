@@ -2,21 +2,17 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone') {
-            steps {
-                git 'https://github.com/alyankabir17/tasbeeh.git'
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
+                echo "Building Docker Image..."
                 sh 'docker build -t tasbeeh-app .'
             }
         }
 
         stage('Stop Old Container') {
             steps {
-                sh 'docker rm -f tasbeeh-container || true'
+                sh 'docker stop tasbeeh-container || true'
+                sh 'docker rm tasbeeh-container || true'
             }
         }
 
