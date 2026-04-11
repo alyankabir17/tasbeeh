@@ -21,27 +21,31 @@ pipeline {
                     string(credentialsId: 'AUTH_SECRET', variable: 'AUTH_SECRET')
                 ]) {
                     sh """
-                    # 1. Backup the current working container
-                    docker rename tasbeeh tasbeeh_old || true
-                    
-                    # 2. Use Docker Compose to start the NEW version
-                    # We pass the env variables directly to the command
-                    IMAGE_NAME=$IMAGE_NAME BUILD_NUMBER=$BUILD_NUMBER \
-                    DATABASE_URL=\$DATABASE_URL \
-                    NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
-                    AUTH_SECRET=\$AUTH_SECRET \
-                    docker compose up -d
-                    
-                    # 3. Health Check
-                    sleep 10
-                    if [ \$(docker inspect -f '{{.State.Running}}' tasbeeh) = "true" ]; then
-                        echo "New version is stable. Removing old backup..."
-                        docker rm -f tasbeeh_old || true
-                    else
-                        echo "New version failed! Triggering Rollback..."
-                        exit 1
-                    fi
-                    """
+# 1. Clear out any ghost backups and rename the current one
+docker stop tasbeeh_old || true
+docker rm tasbeeh_old || true
+docker rename tasbeeh tasbeeh_old || true
+
+# 2. CRITICAL: Stop the backup to free port 3000
+docker stop tasbeeh_old || true
+
+# 3. Run the new version using Compose
+IMAGE_NAME=$IMAGE_NAME BUILD_NUMBER=$BUILD_NUMBER \
+DATABASE_URL=\$DATABASE_URL \
+NEXTAUTH_SECRET=\$NEXTAUTH_SECRET \
+AUTH_SECRET=\$AUTH_SECRET \
+docker compose up -d
+
+# 4. Health Check
+sleep 10
+if [ \$(docker inspect -f '{{.State.Running}}' tasbeeh) = "true" ]; then
+    echo "Deployment successful. Cleaning up..."
+    docker rm -f tasbeeh_old || true
+else
+    echo "New container failed health check!"
+    exit 1
+fi
+"""
                 }
             }
         }
