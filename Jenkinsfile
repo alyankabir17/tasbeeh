@@ -42,18 +42,21 @@ pipeline {
             }
         }
     }
-    post {
-        failure {
-            sh """
-            echo "Deployment failed. Reverting to tasbeeh_old..."
+   post {
+    failure {
+        sh """
+        echo "Deployment failed. Checking for rollback options..."
+        # Only try to restore if the old backup actually exists
+        if [ \$(docker ps -a -q -f name=tasbeeh_old) ]; then
             docker stop tasbeeh || true
             docker rm tasbeeh || true
-            docker rename tasbeeh_old tasbeeh || true
-            docker start tasbeeh || true
-            """
-        }
-        always {
-            sh "docker image prune -f"
-        }
+            docker rename tasbeeh_old tasbeeh
+            docker start tasbeeh
+            echo "Rollback successful."
+        else
+            echo "No backup container (tasbeeh_old) found. System is currently down."
+        fi
+        """
     }
+}
 }
