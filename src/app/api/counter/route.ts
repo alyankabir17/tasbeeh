@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { query, queryOne } from "@/lib/db";
 
+
+export const dynamic = "force-dynamic";
+
+
 interface CounterRow {
   id: string;
   user_id: string;
@@ -10,6 +14,7 @@ interface CounterRow {
   lifetime_count: number;
   last_updated: string;
 }
+
 
 /** Map snake_case DB row to camelCase for the frontend */
 function toJson(row: CounterRow) {
