@@ -17,7 +17,7 @@ pipeline {
                     string(credentialsId: 'DATABASE_URL', variable: 'DATABASE_URL'),
                     string(credentialsId: 'NEXTAUTH_SECRET', variable: 'NEXTAUTH_SECRET'),
                     string(credentialsId: 'AUTH_SECRET', variable: 'AUTH_SECRET'),
-                    string(credentialsId: 'DISCORD_WEBHOOK', variable: 'DISCORD_URL')
+                    string(credentialsId: 'DISCORD_WEBHOOK_URL', variable: 'DISCORD_URL')
                 ]) {
                     sh """
                     # 1. Prepare for deployment
