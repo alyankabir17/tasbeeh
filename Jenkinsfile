@@ -60,7 +60,7 @@ pipeline {
     }
     post {
         failure {
-            withCredentials([string(credentialsId: 'DISCORD_WEBHOOK', variable: 'DISCORD_URL')]) {
+            withCredentials([string(credentialsId: 'DISCORD_WEBHOOK_URL', variable: 'DISCORD_URL')]) {
                 sh """
                 echo "Deployment failed. Reverting to tasbeeh_old..."
                 curl -H "Content-Type: application/json" -X POST -d '{"content": "🔄 **Build #$BUILD_NUMBER Failed.** Rolling back to previous version."}' \$DISCORD_URL
